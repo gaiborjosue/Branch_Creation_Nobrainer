@@ -1,0 +1,90 @@
+name: "Setup branch and parser for Issue Request"
+
+inputs:
+  issueNumber:
+    required: true
+    type: number
+  token:
+    required: true
+    type: string
+
+outputs:
+  MODELPATH:
+    description: "The path to the file to update"
+    value: ${{ steps.get_path.outputs.path }}
+  DOCKER:
+    description: "The docker url to update"
+    value: ${{ steps.get_docker_url.outputs.docker_url }}
+  PYTHONS:
+    value: ${{ steps.issue-parser.outputs.issueparser_python-scripts }}
+  BRANCHNAME:
+    value: ${{ steps.Create_Issue_Branch.outputs.branchName }}
+  UPDATES:
+    value: ${{ steps.get_updates.outputs.updates }}
+  WEIGHTS:
+    value: ${{ steps.get_weights.outputs.weights }}
+  MODELINFO:
+    value: ${{ steps.issue-parser.outputs.issueparser_model_info }}
+  SAMPLEDATA:
+    value: ${{ steps.get_data.outputs.sample_data }}
+
+
+runs:
+  using: "composite"
+
+  steps:
+
+      # This will automatically create a new branch from this issue, using custom config at /.github/issue-branch.yml 🟢 ♻️
+    - name: Create Issue Branch
+      id: Create_Issue_Branch
+      uses: robvanderleek/create-issue-branch@main
+      env:
+        GITHUB_TOKEN:
+          ${{ inputs.token }}
+
+    # Checkout the repository to the GitHub Actions runner
+    # This is when the action fails and the user wants to update the issue scripts
+    # This will ref the issue branch and allow for the rest of the script to update
+    # the branch. 🟢 ♻️
+
+    # If branchName is empty use issue number, else, use the branchName 🟢 ♻️
+    - uses: actions/checkout@v3
+      with:
+          ref: ${{ steps.Create_Issue_Branch.outputs.branchName }}
+    
+    # Parse the issue template and content 🟢 ♻️
+    - uses: stefanbuck/github-issue-parser@v3
+      id: issue-parser
+      with:
+        template-path: .github/ISSUE_TEMPLATE/updateModel.yml # optional but recommended
+
+    # Get what is being updated checkboxes
+    - name: Get updates
+      shell: bash
+      id: get_updates
+      run: echo "updates=${{ steps.issue-parser.outputs.issueparser_updates }}" >> $GITHUB_OUTPUT
+
+    - name: Get the Path
+      shell: bash
+      id: get_path
+      run: echo "path=${{ steps.issue-parser.outputs.issueparser_path }}" >> $GITHUB_OUTPUT
+
+    - name: Get the Weights
+      if: ${{ contains(steps.get_updates.outputs.updates, 'ModelWeights') }}
+      shell: bash
+      id: get_weights
+      run: echo "weights=${{ steps.issue-parser.outputs.issueparser_weights }}" >> $GITHUB_OUTPUT
+
+    - name: Get Sample Data
+      if: ${{ contains(steps.get_updates.outputs.updates, 'SampleDataset') }}
+      id: get_data
+      run: echo "sample_data=${{ steps.issue-parser.outputs.issueparser_sample-data }}" >> $GITHUB_OUTPUT
+
+    # Get docker url
+    - name: Get Docker URL
+      # Only if Docker information is in the list updates
+      if: ${{ contains(steps.get_updates.outputs.updates, 'DockerInformation') }}
+      shell: bash
+      id: get_docker_url
+      run: echo "docker_url=${{ steps.issue-parser.outputs.issueparser_docker }}" >> $GITHUB_OUTPUT
+  
