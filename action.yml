@@ -67,7 +67,7 @@ runs:
     - name: Get the Path
       shell: bash
       id: get_path
-      run: echo "path=${{ steps.issue-parser.outputs.issueparser_path }}" >> $GITHUB_OUTPUT
+      run: echo "path=${{ steps.issue-parser.outputs.issueparser_pathNew }}" >> $GITHUB_OUTPUT
 
     - name: Get the Weights
       if: ${{ contains(steps.get_updates.outputs.updates, 'ModelWeights') }}
