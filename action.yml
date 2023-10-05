@@ -77,6 +77,7 @@ runs:
 
     - name: Get Sample Data
       if: ${{ contains(steps.get_updates.outputs.updates, 'SampleDataset') }}
+      shell: bash
       id: get_data
       run: echo "sample_data=${{ steps.issue-parser.outputs.issueparser_sample-data }}" >> $GITHUB_OUTPUT
 
